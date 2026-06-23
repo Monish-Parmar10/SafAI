@@ -25,7 +25,7 @@ const createReport = async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       generationConfig: { responseMimeType: 'application/json' }
     });
 
@@ -189,7 +189,7 @@ const completeReport = async (req, res) => {
     const { GoogleGenerativeAI } = require('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.0-flash',
       generationConfig: { responseMimeType: 'application/json' }
     });
 
