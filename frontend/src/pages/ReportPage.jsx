@@ -1208,6 +1208,114 @@ function ReportPage() {
               </div>
             </div>
 
+            {/* SHARE TO AUTHORITIES SECTION */}
+            {result.aiResult.detected && (
+              <div style={{
+                backgroundColor: '#FFFFFF',
+                borderRadius: '16px',
+                border: '1px solid #E8E8ED',
+                padding: '16px',
+                marginTop: '8px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.04)'
+              }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#1A1A1A' }}>
+                  📣 Share with Authorities
+                </div>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {/* WhatsApp */}
+                  <button
+                    onClick={() => {
+                      const lat = location?.lat || 'unknown';
+                      const lng = location?.lng || 'unknown';
+                      const msg = `🚨 *Garbage Reported on SafAI* 🚨\n\nGarbage has been reported here: https://maps.google.com/?q=${lat},${lng}\n\nPlease take action.\n#SwachhBharat #SafAI`;
+                      window.open(`https://wa.me/919999999999?text=${encodeURIComponent(msg)}`, '_blank');
+                    }}
+                    style={{
+                      backgroundColor: '#25D366',
+                      color: 'white',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      border: 'none',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      outline: 'none'
+                    }}
+                  >
+                    <span>💬</span> WhatsApp IMC
+                  </button>
+
+                  {/* Twitter */}
+                  <button
+                    onClick={() => {
+                      const lat = location?.lat || 'unknown';
+                      const lng = location?.lng || 'unknown';
+                      const text = `Garbage reported via @SafAI_App! Location: https://maps.google.com/?q=${lat},${lng} @SwachhBharatGov @advpushyamitra please help keep our city clean! 🌿🧹`;
+                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                    }}
+                    style={{
+                      backgroundColor: '#1DA1F2',
+                      color: 'white',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      border: 'none',
+                      fontWeight: 700,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      outline: 'none'
+                    }}
+                  >
+                    <span>🐦</span> Tweet Issue
+                  </button>
+                </div>
+
+                {/* Native Share */}
+                {navigator.share && (
+                  <button
+                    onClick={() => {
+                      const lat = location?.lat || 'unknown';
+                      const lng = location?.lng || 'unknown';
+                      navigator.share({
+                        title: 'SafAI Garbage Report',
+                        text: 'Garbage reported! Help keep the city clean.',
+                        url: `https://maps.google.com/?q=${lat},${lng}`
+                      }).catch(console.error);
+                    }}
+                    style={{
+                      backgroundColor: '#F7F8FA',
+                      color: '#5C5C6E',
+                      borderRadius: '10px',
+                      padding: '10px',
+                      border: '1px solid #E8E8ED',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px',
+                      marginTop: '4px',
+                      outline: 'none'
+                    }}
+                  >
+                    <span>📤</span> Share Link
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* MY REPORTS SECTION */}
             <div style={{ marginTop: '8px' }}>
               <button
