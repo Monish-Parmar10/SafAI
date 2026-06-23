@@ -17,46 +17,54 @@ const createReport = async (req, res) => {
     // Upload photo to Cloudinary first
     const imageUrl = await uploadToCloudinary(req.file.buffer, 'safai/reports');
 
-    // Convert buffer to base64 for Gemini AI analysis
-    const base64Image = req.file.buffer.toString('base64');
-    const mimeType = req.file.mimetype || 'image/jpeg';
-
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
-
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      generationConfig: { responseMimeType: 'application/json' }
+    const rawData = JSON.stringify({
+      user_app_id: {
+        user_id: process.env.CLARIFAI_USER_ID,
+        app_id: process.env.CLARIFAI_APP_ID
+      },
+      inputs: [{ data: { image: { url: imageUrl } } }]
     });
 
-    const prompt = `Analyze this image and determine if it contains garbage, 
-waste, litter, trash, or any form of improper waste disposal. 
-Respond ONLY with a JSON object in this exact format:
-{
-  "detected": true or false,
-  "confidence": number between 0 and 100,
-  "severity": "low" or "medium" or "high",
-  "reason": "one short sentence explaining what you see"
-}
-Base severity on: high if large pile or hazardous, medium if moderate 
-amount, low if minor littering.`;
+    const clarifaiResponse = await fetch("https://api.clarifai.com/v2/models/general-image-recognition/outputs", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": "Key " + process.env.CLARIFAI_PAT
+      },
+      body: rawData
+    });
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          mimeType: mimeType,
-          data: base64Image
+    if (!clarifaiResponse.ok) {
+      throw new Error(`Clarifai API failed: ${clarifaiResponse.statusText}`);
+    }
+
+    const clarifaiResult = await clarifaiResponse.json();
+    const concepts = clarifaiResult.outputs[0].data.concepts;
+    const garbageKeywords = ['garbage', 'trash', 'waste', 'litter', 'debris', 'rubbish', 'dump', 'pollution'];
+    
+    let aiDetected = false;
+    let maxConfidence = 0;
+    
+    for (const concept of concepts) {
+      if (garbageKeywords.includes(concept.name.toLowerCase())) {
+        if (concept.value > 0.6) {
+          aiDetected = true;
+        }
+        if (concept.value > maxConfidence) {
+          maxConfidence = concept.value;
         }
       }
-    ]);
+    }
 
-    const responseText = result.response.text();
-    const aiResult = JSON.parse(responseText.trim());
+    const aiConfidence = Math.round(maxConfidence * 100);
+    let severity = 'low';
+    if (aiConfidence > 90) severity = 'high';
+    else if (aiConfidence > 75) severity = 'medium';
 
-    const aiDetected = aiResult.detected;
-    const aiConfidence = aiResult.confidence;
-    let severity = aiResult.severity || 'low';
+    const aiReason = aiDetected 
+      ? `Detected garbage/trash with ${aiConfidence}% confidence.` 
+      : "Area looks clean, no garbage detected.";
 
     // Find first available worker
     const worker = await Worker.findOne({ status: 'available' });
@@ -100,7 +108,7 @@ amount, low if minor littering.`;
         detected: aiDetected,
         confidence: aiConfidence,
         severity,
-        reason: aiResult.reason
+        reason: aiReason
       }
     });
 
@@ -185,32 +193,50 @@ const completeReport = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Failed to load images for AI validation' });
     }
 
-    // Call Gemini to compare before/after
-    const { GoogleGenerativeAI } = require('@google/generative-ai');
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_KEY);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      generationConfig: { responseMimeType: 'application/json' }
+    const rawData = JSON.stringify({
+      user_app_id: {
+        user_id: process.env.CLARIFAI_USER_ID,
+        app_id: process.env.CLARIFAI_APP_ID
+      },
+      inputs: [{ data: { image: { base64: afterBase64 } } }]
     });
 
-    const prompt = `Compare these two images. First image shows garbage/waste. 
-Second image should show the same area cleaned. 
-Is the area now clean? Respond ONLY with a JSON object in this exact format:
-{
-  "cleaned": true,
-  "confidence": 95,
-  "reason": "The garbage has been cleared and the area is clean."
-}
-Reply with JSON only.`;
+    const clarifaiResponse = await fetch("https://api.clarifai.com/v2/models/general-image-recognition/outputs", {
+      method: "POST",
+      headers: {
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+        "Authorization": "Key " + process.env.CLARIFAI_PAT
+      },
+      body: rawData
+    });
 
-    const result = await model.generateContent([
-      prompt,
-      { inlineData: { mimeType: 'image/jpeg', data: beforeBase64 } },
-      { inlineData: { mimeType: req.file.mimetype || 'image/jpeg', data: afterBase64 } }
-    ]);
+    if (!clarifaiResponse.ok) {
+      throw new Error(`Clarifai API failed: ${clarifaiResponse.statusText}`);
+    }
 
-    const responseText = result.response.text();
-    const aiResult = JSON.parse(responseText.trim());
+    const clarifaiResult = await clarifaiResponse.json();
+    const concepts = clarifaiResult.outputs[0].data.concepts;
+    const garbageKeywords = ['garbage', 'trash', 'waste', 'litter', 'debris', 'rubbish', 'dump', 'pollution'];
+    
+    let isClean = true;
+    let foundReason = "";
+
+    for (const concept of concepts) {
+      if (garbageKeywords.includes(concept.name.toLowerCase())) {
+        if (concept.value > 0.5) {
+          isClean = false;
+          foundReason = `Detected ${concept.name} (Confidence: ${Math.round(concept.value * 100)}%). Area still not clean.`;
+          break;
+        }
+      }
+    }
+
+    const aiResult = {
+      cleaned: isClean,
+      confidence: isClean ? 95 : 0,
+      reason: foundReason || "The garbage has been cleared and the area is clean."
+    };
 
     if (aiResult.cleaned === true) {
       // Upload the after/completion photo to Cloudinary
