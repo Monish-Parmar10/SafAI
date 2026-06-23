@@ -54,6 +54,9 @@ app.use('/api/auth', authRoutes);
 const workerRoutes = require('./routes/workerRoutes');
 app.use('/api/workers', workerRoutes);
 
+const analyzeGarbageRoutes = require('./routes/analyzeGarbage');
+app.use('/api', analyzeGarbageRoutes);
+
 // Health check
 app.get('/health', (req, res) => res.json({ status: 'ok', service: 'SafAI API' }));
 
