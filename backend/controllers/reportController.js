@@ -336,10 +336,40 @@ const acceptReport = async (req, res) => {
   }
 };
 
+// 6. Delete Report (DELETE /api/reports/:id)
+const deleteReport = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const report = await Report.findById(id);
+    
+    if (!report) {
+      return res.status(404).json({ success: false, message: 'Report not found' });
+    }
+
+    // Check if worker is assigned to this report and free them
+    if (report.assignedWorker) {
+      const worker = await Worker.findById(report.assignedWorker);
+      if (worker && worker.currentTask && worker.currentTask.toString() === id.toString()) {
+        worker.status = 'available';
+        worker.currentTask = null;
+        await worker.save();
+      }
+    }
+
+    await Report.findByIdAndDelete(id);
+
+    return res.status(200).json({ success: true, message: 'Report deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting report:', error);
+    return res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
+  }
+};
+
 module.exports = {
   createReport,
   getAllReports,
   getStats,
   completeReport,
-  acceptReport
+  acceptReport,
+  deleteReport
 };

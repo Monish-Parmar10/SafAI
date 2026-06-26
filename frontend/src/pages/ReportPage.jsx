@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { submitReport } from '../services/api';
+import { submitReport, deleteReport } from '../services/api';
 
 const BASE_URL = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL.replace('/api', '')
@@ -196,6 +196,20 @@ function ReportPage() {
       alert('Network error. Please try again.');
       setDeleting(false);
       setShowDeleteConfirm(false);
+    }
+  };
+
+  const handleDeleteReport = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this report?')) return;
+    try {
+      setReportsLoading(true);
+      await deleteReport(id);
+      setMyReports(prev => prev.filter(r => r._id !== id));
+    } catch (err) {
+      console.error(err);
+      alert('Failed to delete report.');
+    } finally {
+      setReportsLoading(false);
     }
   };
 
@@ -1726,19 +1740,36 @@ function ReportPage() {
                         {new Date(report.createdAt).toLocaleDateString('en-IN',
                           {day:'numeric',month:'short',year:'numeric'})}
                       </div>
-                      {conf && (
-                        <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
-                          <div style={{width:'60px',height:'5px',background:'#F0F0F5',
-                            borderRadius:'3px',overflow:'hidden'}}>
-                            <div style={{width:`${conf}%`,height:'100%',
-                              background:'linear-gradient(90deg,#C1440E,#F59E0B)',
-                              borderRadius:'3px'}}/>
+                      <div style={{display:'flex', alignItems:'center', gap:'12px'}}>
+                        {conf && (
+                          <div style={{display:'flex',alignItems:'center',gap:'6px'}}>
+                            <div style={{width:'60px',height:'5px',background:'#F0F0F5',
+                              borderRadius:'3px',overflow:'hidden'}}>
+                              <div style={{width:`${conf}%`,height:'100%',
+                                background:'linear-gradient(90deg,#C1440E,#F59E0B)',
+                                borderRadius:'3px'}}/>
+                            </div>
+                            <span style={{fontSize:'11px',fontWeight:700,color:'#C1440E'}}>
+                              {Math.round(conf)}%
+                            </span>
                           </div>
-                          <span style={{fontSize:'11px',fontWeight:700,color:'#C1440E'}}>
-                            {Math.round(conf)}%
-                          </span>
-                        </div>
-                      )}
+                        )}
+                        <button 
+                          onClick={() => handleDeleteReport(report._id)}
+                          style={{
+                            background: '#FEE2E2', 
+                            color: '#DC2626', 
+                            border: 'none', 
+                            borderRadius: '8px', 
+                            padding: '6px 10px', 
+                            fontSize: '12px', 
+                            fontWeight: 'bold', 
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🗑️ Delete
+                        </button>
+                      </div>
                     </div>
 
                     {/* Worker assigned row */}

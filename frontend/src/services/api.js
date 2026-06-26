@@ -22,5 +22,6 @@ export const getStats = () => API.get(`${BASE_URL}/reports/stats`);
 export const completeReport = (id, formData) => API.patch(`${BASE_URL}/reports/${id}/complete`, formData);
 export const acceptReport = (id) => API.patch(`${BASE_URL}/reports/${id}/accept`);
 export const getWorkers = () => API.get(`${BASE_URL}/workers`);
+export const deleteReport = (id) => API.delete(`${BASE_URL}/reports/${id}`);
 
 export default API;

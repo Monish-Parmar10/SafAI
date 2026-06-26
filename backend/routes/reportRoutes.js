@@ -6,7 +6,8 @@ const {
   getAllReports,
   getStats,
   completeReport,
-  acceptReport
+  acceptReport,
+  deleteReport
 } = require('../controllers/reportController');
 
 const { uploadSingle, uploadCompletion } = require('../middleware/upload');
@@ -26,5 +27,8 @@ router.patch('/:id/accept', protect, workerOnly, acceptReport);
 
 // PATCH /api/reports/:id/complete - Complete report task
 router.patch('/:id/complete', protect, workerOnly, uploadCompletion, completeReport);
+
+// DELETE /api/reports/:id - Delete a report
+router.delete('/:id', protect, deleteReport);
 
 module.exports = router;
